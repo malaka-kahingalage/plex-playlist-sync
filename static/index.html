@@ -1,0 +1,352 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plex + Spotify Playlist Sync</title>
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <nav class="navbar navbar-dark bg-dark border-bottom border-secondary shadow-sm" style="height:56px;">
+    <div class="container-fluid">
+      <a class="navbar-brand d-flex align-items-center gap-2" href="#">
+        <i class="fa fa-server text-warning" style="font-size:24px;"></i>
+        <span class="plus fs-5 align-middle text-warning">+</span>
+        <i class="fab fa-spotify text-success" style="font-size:24px;"></i>
+        <span class="title ms-2" style="font-size:1.1rem;font-weight:500;letter-spacing:0.5px;">Premium Playlist Sync</span>
+      </a>
+      <div class="d-flex align-items-center gap-3">
+        <span class="text-light small" style="font-weight:500;">Dashboard</span>
+        <div class="dropdown">
+          <img src="https://www.gravatar.com/avatar/?d=mp&s=32" alt="User" class="rounded-circle dropdown-toggle" style="height:32px;width:32px;cursor:pointer;" data-bs-toggle="dropdown">
+          <ul class="dropdown-menu dropdown-menu-end bg-dark border-secondary">
+            <li><a class="dropdown-item text-light" href="#"><i class="fa fa-user me-2"></i> Profile</a></li>
+            <li><a class="dropdown-item text-light" href="#"><i class="fa fa-sign-out-alt me-2"></i> Logout</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Login Modal -->
+  <div class="modal fade" id="loginModal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content bg-dark text-light rounded-4 shadow-lg border-0" style="min-width:320px;max-width:370px;margin:auto;">
+        <div class="modal-header border-0 pb-0">
+          <h5 class="modal-title w-100 text-center" id="loginModalLabel">
+            <i class="fa fa-lock text-warning"></i> Sign In
+          </h5>
+        </div>
+        <div class="modal-body pt-2">
+          <form id="loginForm" autocomplete="off">
+            <div class="mb-3">
+              <input type="text" class="form-control form-control-lg rounded-3" id="username" placeholder="Username" required autofocus>
+            </div>
+            <div class="mb-3">
+              <input type="password" class="form-control form-control-lg rounded-3" id="password" placeholder="Password" required>
+            </div>
+            <button type="submit" class="btn btn-gradient w-100 py-2 mb-2">Login</button>
+            <div id="loginError" class="error text-center mt-2"></div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="d-flex" id="mainUI" style="display:none;min-height:calc(100vh - 56px);">
+    <!-- Collapsible Sidebar -->
+    <aside class="bg-dark border-end border-secondary flex-shrink-0 sidebar-collapsed" id="sidebar" style="width:60px;min-height:100%;transition:width 0.3s ease;">
+      <div class="d-flex flex-column pt-4" style="height:100%;">
+        <div class="px-3 pb-2">
+          <button class="btn btn-link text-secondary p-0 mb-3" id="sidebarToggle" style="font-size:18px;">
+            <i class="fa fa-bars"></i>
+          </button>
+          <div class="sidebar-content" style="display:none;">
+            <div class="text-uppercase text-secondary small mb-3" style="font-weight:600;letter-spacing:1px;">plex.home</div>
+            <ul class="nav nav-pills flex-column mb-auto">
+              <li class="nav-item"><a href="#" class="nav-link active"><i class="fa fa-tachometer-alt me-2"></i> <span class="nav-text">Dashboard</span></a></li>
+              <li><a href="#" class="nav-link"><i class="fa fa-list me-2"></i> <span class="nav-text">Jobs</span></a></li>
+              <li><a href="#" class="nav-link"><i class="fa fa-cog me-2"></i> <span class="nav-text">Settings</span></a></li>
+            </ul>
+          </div>
+        </div>
+        <div class="mt-auto px-3 pb-3 small sidebar-content" style="color:#666;display:none;">
+          <div class="d-flex align-items-center gap-2">
+            <div class="rounded-circle bg-success" style="width:8px;height:8px;"></div>
+            <span>System Online</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+    <!-- Main Content -->
+    <main class="flex-grow-1 bg-dark" style="min-height:100%;">
+      <div class="container-fluid py-4">
+        <div class="row justify-content-center">
+          <div class="col-lg-8 col-xl-6">
+            <div class="card shadow-sm glass-effect mb-4">
+              <div class="card-body">
+                <h6 class="card-title mb-4 text-light d-flex align-items-center" style="font-size:1.1rem;font-weight:600;">
+                  <i class="fa fa-sync-alt text-success me-2"></i> 
+                  <span class="text-gradient">Sync Your Spotify Content</span>
+                </h6>
+                <form id="playlistForm">
+                  <div class="mb-3">
+                    <label for="url" class="form-label">Spotify URL</label>
+                    <input type="text" class="form-control" id="url" name="url" placeholder="https://open.spotify.com/playlist/... or /artist/..." required>
+                    <div class="form-text">
+                      <div class="mt-2 p-2 rounded" style="background: rgba(40,167,69,0.1); border-left: 3px solid #28a745;">
+                        <small>
+                          <strong><i class="fa fa-rocket text-success me-1"></i> Enhanced Features Active:</strong><br>
+                          ✅ <strong>Smart Plex Matching:</strong> Multi-strategy search with fuzzy logic<br>
+                          ✅ <strong>Enhanced YouTube Search:</strong> YTMusic API with fallback strategies<br>
+                          ✅ <strong>Parallel Downloads:</strong> Individual song tracking with real-time progress<br>
+                          ✅ <strong>Spotify Compatibility:</strong> Dual authentication for maximum playlist access<br>
+                          ✅ <strong>Auto-Detection:</strong> Supports both playlists and artist catalogs<br>
+                          <span class="text-muted">Optimized for accuracy and speed</span>
+                        </small>
+                      </div>
+                    </div>
+                  </div>
+                  <button type="submit" class="btn btn-success w-100">
+                    <i class="fa fa-play-circle me-2"></i> Start Sync
+                  </button>
+                </form>
+                <div class="friendly-tip text-center mt-3" style="font-size:13px;color:#888;">
+                  <i class="fa fa-info-circle me-1"></i> Ensure your Plex library is up to date for optimal results
+                </div>
+              </div>
+            </div>
+            <div class="card shadow-sm glass-effect mb-3">
+              <div class="card-body">
+                <div id="jobStatus" class="job-status"></div>
+              </div>
+            </div>
+            <div class="card shadow-sm glass-effect">
+              <div class="card-body p-0">
+                <div class="d-flex align-items-center justify-content-between px-3 py-3 border-bottom border-secondary">
+                  <h6 class="mb-0 d-flex align-items-center" style="font-weight:600;color:#ccc;font-size:0.95rem;">
+                    <i class="fa fa-pulse fa-circle text-success me-2" style="font-size:6px;"></i>
+                    Live Activity
+                  </h6>
+                  <small class="text-muted d-flex align-items-center" style="font-size:0.75rem;">
+                    <i class="fa fa-clock me-1"></i> Real-time
+                  </small>
+                </div>
+                <!-- Progress Bar Container -->
+                <div id="progressContainer" class="px-3 py-2 border-bottom border-secondary" style="display:none;">
+                  <div class="d-flex align-items-center justify-content-between mb-1">
+                    <small class="text-muted" style="font-size:0.75rem;">Sync Progress</small>
+                    <small id="progressText" class="text-success" style="font-size:0.75rem;">0%</small>
+                  </div>
+                  <div class="progress" style="height:4px;background:#262626;">
+                    <div id="progressBar" class="progress-bar bg-gradient-success" role="progressbar" style="width:0%;transition:width 0.3s ease;"></div>
+                  </div>
+                </div>
+                <!-- Simple Activity Feed -->
+                <div id="log" class="simple-activity-feed"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Bootstrap 5 JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // --- Basic Auth with Bootstrap Modal ---
+    let authHeader = '';
+    const loginModal = new bootstrap.Modal(document.getElementById('loginModal'), {backdrop: 'static', keyboard: false});
+    document.getElementById('mainUI').style.display = 'none';
+    loginModal.show();
+    document.getElementById('loginForm').onsubmit = function(e) {
+      e.preventDefault();
+      const user = document.getElementById('username').value;
+      const pass = document.getElementById('password').value;
+      if (user === 'admin' && pass === 'admin') {
+        authHeader = 'Basic ' + btoa(user + ':' + pass);
+        loginModal.hide();
+        document.getElementById('mainUI').style.display = '';
+        document.getElementById('loginError').textContent = '';
+      } else {
+        document.getElementById('loginError').textContent = 'Invalid credentials. Try admin/admin.';
+      }
+    };
+
+    // --- Sidebar Toggle ---
+    document.getElementById('sidebarToggle').onclick = function() {
+      const sidebar = document.getElementById('sidebar');
+      const sidebarContent = document.querySelectorAll('.sidebar-content');
+      const navTexts = document.querySelectorAll('.nav-text');
+      
+      if (sidebar.classList.contains('sidebar-collapsed')) {
+        sidebar.style.width = '220px';
+        sidebar.classList.remove('sidebar-collapsed');
+        sidebarContent.forEach(el => el.style.display = 'block');
+        navTexts.forEach(el => el.style.display = 'inline');
+      } else {
+        sidebar.style.width = '60px';
+        sidebar.classList.add('sidebar-collapsed');
+        sidebarContent.forEach(el => el.style.display = 'none');
+        navTexts.forEach(el => el.style.display = 'none');
+      }
+    };
+
+    // --- Main UI Logic ---
+    const form = document.getElementById('playlistForm');
+    const jobStatus = document.getElementById('jobStatus');
+  const logDiv = document.getElementById('log');
+    let pollInterval = null;
+    form.onsubmit = async (e) => {
+      e.preventDefault();
+      jobStatus.textContent = '';
+      logDiv.textContent = '';
+      const url = document.getElementById('url').value;
+      const resp = await fetch('/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': authHeader },
+        body: JSON.stringify({ url })
+      });
+      const data = await resp.json();
+      if (data.job_id) {
+        jobStatus.innerHTML = 'Your playlist sync has started!<br>Job ID: <b>' + data.job_id + '</b>';
+        pollJob(data.job_id);
+      } else {
+        jobStatus.textContent = 'Failed to submit job. Please check your Spotify URL.';
+      }
+    };
+    async function pollJob(jobId) {
+      if (pollInterval) clearInterval(pollInterval);
+      pollInterval = setInterval(async () => {
+        const resp = await fetch('/status/' + jobId, { headers: { 'Authorization': authHeader } });
+        if (!resp.ok) return;
+        const data = await resp.json();
+        jobStatus.innerHTML = 'Status: <span class="status">' + data.status + '</span>';
+        if (data.log && data.log.length) {
+          renderChatLog(data.log);
+        }
+        if (['done','error'].includes(data.status)) {
+          clearInterval(pollInterval);
+        }
+      }, 2000);
+    }
+
+    // --- Chat Log Rendering ---
+    let currentProgress = 0;
+    let totalTracks = 0;
+    let currentJobId = null;
+    
+    function renderChatLog(logLines) {
+      logDiv.innerHTML = '';
+      let hasProgress = false;
+      
+      logLines.forEach((line, idx) => {
+        // Extract progress info for unified progress bar
+        const progressMatch = line.match(/Processing: \|.*\| (\d+)\/(\d+)/);
+        if (progressMatch) {
+          currentProgress = parseInt(progressMatch[1]);
+          totalTracks = parseInt(progressMatch[2]);
+          hasProgress = true;
+          updateProgressBar();
+          return; // Skip rendering individual progress lines
+        }
+        
+        const logItem = document.createElement('div');
+        logItem.className = 'log-item';
+        
+        // Enhanced parsing for better categorization
+        if (/error|fail|not found|missing/i.test(line)) {
+          logItem.innerHTML = `
+            <div class="log-line error-line">
+              <span class="log-text">${friendlyLog(line)}</span>
+              <span class="log-time">${new Date().toLocaleTimeString()}</span>
+            </div>
+          `;
+        } else if (/done|complete|success|created|updated/i.test(line)) {
+          logItem.innerHTML = `
+            <div class="log-line success-line">
+              <span class="log-text">${friendlyLog(line)}</span>
+              <span class="log-time">${new Date().toLocaleTimeString()}</span>
+            </div>
+          `;
+        } else if (/processing|matching|waiting|scan|download/i.test(line)) {
+          logItem.innerHTML = `
+            <div class="log-line progress-line">
+              <span class="log-text">${friendlyLog(line)}</span>
+              <span class="log-time">${new Date().toLocaleTimeString()}</span>
+            </div>
+          `;
+        } else {
+          logItem.innerHTML = `
+            <div class="log-line info-line">
+              <span class="log-text">${friendlyLog(line)}</span>
+              <span class="log-time">${new Date().toLocaleTimeString()}</span>
+            </div>
+          `;
+        }
+        logDiv.appendChild(logItem);
+      });
+      
+      if (!hasProgress && currentProgress > 0) {
+        hideProgressBar();
+      }
+      
+      logDiv.scrollTop = logDiv.scrollHeight;
+    }
+    
+    function updateProgressBar() {
+      const progressContainer = document.getElementById('progressContainer');
+      const progressBar = document.getElementById('progressBar');
+      const progressText = document.getElementById('progressText');
+      
+      if (totalTracks > 0) {
+        const percentage = Math.round((currentProgress / totalTracks) * 100);
+        progressContainer.style.display = 'block';
+        progressBar.style.width = percentage + '%';
+        progressText.textContent = `Processing ${currentProgress} of ${totalTracks} tracks (${percentage}%)`;
+      }
+    }
+    
+    function hideProgressBar() {
+      const progressContainer = document.getElementById('progressContainer');
+      progressContainer.style.display = 'none';
+      currentProgress = 0;
+      totalTracks = 0;
+    }
+
+    // Friendlier log wording
+    function friendlyLog(line) {
+      return line
+        .replace(/Processing and matching (\d+) tracks/, '🎶 Starting sync for <b>$1</b> tracks...')
+        .replace(/Matching complete\./, 'All tracks have been checked!')
+        .replace(/Found (\d+) matching tracks in Plex\./, '<b>$1</b> tracks matched your Plex library!')
+        .replace(/(\d+) tracks not found in Plex\./, '<b>$1</b> tracks could not be matched.')
+        .replace(/Waiting for Plex scan to complete before updating playlist\./, 'Waiting for Plex to finish scanning your music...')
+        .replace(/Plex scan in progress\.{3}/, 'Plex is scanning your library...')
+        .replace(/Plex scan complete. Updating playlist with new tracks\.{3}/, 'Plex scan done! Updating your playlist...')
+        .replace(/Unsupported Spotify URL\. Please provide a playlist or artist URL\./, 'Please provide a valid Spotify playlist or artist URL.')
+        .replace(/Invalid Spotify Playlist URL provided\./, 'Please check your Spotify link.')
+        .replace(/Download missing tracks using spotDL as a library/, 'Trying to download missing tracks...')
+        .replace(/create_or_update_plex_playlist/, 'Updating your Plex playlist...')
+        ;
+    }
+    function updateStats() {
+      // TODO: Replace with real API calls
+      document.getElementById('statTotal').textContent = 12;
+      document.getElementById('statActive').textContent = 1;
+      document.getElementById('statDone').textContent = 10;
+      document.getElementById('statError').textContent = 1;
+    }
+    setInterval(updateStats, 3000);
+    updateStats();
+  </script>
+</body>
+</html>

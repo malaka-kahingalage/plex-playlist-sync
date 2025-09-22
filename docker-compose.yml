@@ -1,0 +1,27 @@
+version: '3.8'
+services:
+  plexplaylist-backend:
+    build: .
+    container_name: plexplaylist-backend
+    restart: unless-stopped
+    environment:
+      - HTTP_PROXY=http://10.10.40.22:8443
+      - HTTPS_PROXY=http://10.10.40.22:8443
+      # Customizable variables for sync behavior
+      - PLEX_SCAN_SLEEP_SECONDS=180  # Wait 5 minutes after scan before updating playlist
+      - SPOTDL_THREADS=5             # Number of concurrent downloads
+    volumes:
+      - /nas02/nas02/tmp/downloads/spoti-dl:/app/downloads
+      - ./reports:/app/reports
+      - /nas01/nas01/Songs:/app/Songs
+    ports:
+      - "8000:8000"
+    command:
+      - uvicorn
+      - web_api:app
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8000"
+      - --log-level
+      - warning

@@ -1,0 +1,12 @@
+spotipy
+spotipy-anon
+plexapi
+thefuzz
+python-dotenv
+rapidfuzz
+spotdl
+ytmusicapi
+musicbrainzngs
+mutagen
+fastapi
+uvicorn
