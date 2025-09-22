@@ -18,6 +18,9 @@ lib/
 lib64/
 parts/
 sdist/
+
+# Local environment secrets
+.env
 var/
 wheels/
 share/python-wheels/

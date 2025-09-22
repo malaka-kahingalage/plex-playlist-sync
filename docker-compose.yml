@@ -4,6 +4,8 @@ services:
     build: .
     container_name: plexplaylist-backend
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
       - HTTP_PROXY=http://10.10.40.22:8443
       - HTTPS_PROXY=http://10.10.40.22:8443
