@@ -1,11 +1,6 @@
 import os
 from dotenv import load_dotenv, find_dotenv
 
-# Default values (edit as needed)
-#DEFAULT_SPOTIPY_CLIENT_ID = "8260f0f0e143459c8de09e6450051f9e"
-#DEFAULT_SPOTIPY_CLIENT_SECRET = "5cf1d2f3862548c1ae15b32768385de5"
-###
-# All sensitive values must be set in .env file (no hardcoded secrets)
 
 # Load .env if it exists
 dotenv_path = find_dotenv()
